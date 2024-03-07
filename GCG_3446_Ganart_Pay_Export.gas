@@ -1,0 +1,329 @@
+Program.Sub.ScreenSU.Start
+gui.Form1..create
+gui.Form1..caption("Ganart Interface")
+gui.Form1..size(3405,2430)
+gui.Form1..position(0,0)
+gui.Form1..alwaysontop(False)
+gui.Form1..fontname("Arial")
+gui.Form1..fontsize(8)
+gui.Form1..forecolor(0)
+gui.Form1..fontstyle(,,,,)
+gui.Form1..BackColor(-2147483633)
+gui.Form1..controlbox(True)
+gui.Form1..maxbutton(True)
+gui.Form1..minbutton(True)
+gui.Form1..mousepointer(0)
+gui.Form1..moveable(True)
+gui.Form1..sizeable(True)
+gui.Form1..ShowInTaskBar(True)
+gui.Form1..titlebar(True)
+gui.Form1.lbl1.create(label,"Generating Payroll Export File",True,2760,1500,1,200,200,True,2,Arial,20,-2147483633,0)
+gui.Form1.lbl1.fontstyle(True,False,False,False)
+
+
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Hook 16090
+'RptID 003310 or 003305
+
+V.Local.sSel.Declare(String)
+V.Local.sSelEmpl.Declare(String)
+V.Local.sSelEarn.Declare(String)
+V.Local.sSelDed.Declare(String)
+V.Local.sSelPE.Declare(String)
+V.Local.sSelD.Declare(String)
+V.Local.sDedArray.Declare(String)
+V.Local.sPayEarn.Declare(String)
+V.Local.sEmplRecord.declare(String)
+V.Local.sAcct.Declare(String)
+V.Local.sDesc.Declare(String)
+V.Local.sEarnings.Declare(String)
+V.Local.sDeductions.Declare(String)
+V.Local.sline.declare(String)
+V.Local.sFileName.Declare(String)
+V.Local.sHours.Declare(String)
+V.Local.sRate.Declare(String)
+V.Local.sEarn.Declare(String)
+V.Local.sPeriodEnd.Declare(String)
+V.Local.sChkDate.Declare(String)
+V.Local.sYTDears.Declare(String)
+V.Local.sDeduct.Declare(String)
+V.Local.sYTDded.Declare(String)
+V.Local.sHeading.Declare(String)
+V.Local.sName.Declare(String)
+
+V.Local.lCount.Declare(Long)
+V.Local.bCheck.Declare(Boolean)
+
+F.Intrinsic.Control.If(V.Passed.009001,=,003305)
+	V.Local.bCheck.Set(True)
+F.Intrinsic.Control.ElseIf(V.Passed.009001,=,003310)
+	V.Local.bCheck.Set(True)
+F.Intrinsic.Control.EndIf
+
+
+F.Intrinsic.Control.If(V.Local.bCheck,=,True)
+F.ODBC.Connection!Con.OpenConnection(V.Ambient.PDSN,V.Ambient.puser,V.Ambient.PPass)
+
+Gui.Form1..Show
+
+F.Intrinsic.Control.CallSub(Heading)
+
+F.Intrinsic.String.Format(V.Ambient.Date,"YYYYMMDD",V.Local.sChkDate)
+F.Intrinsic.String.Concat(V.Caller.FilesDir,"\Ganart_",V.Caller.CompanyCode,"_",V.Local.sChkDate,".csv",V.Local.sFileName)
+
+F.Intrinsic.String.Concat("select distinct EMPLOYEE, NAME, SSN, PERIOD_END, CHECK_NUM, CHECK_DATE,NET_PAY,DL3_VACATION,DL3_MATCH_CURR,DL3_MATCH_YTD from V_BI_PAYROLL_CHKS  where TRMNL='",V.Caller.Terminal,"' order by EMPLOYEE",V.Local.sSelEmpl)
+F.ODBC.Connection!Con.OpenRecordsetRO("rstA",V.Local.sSelEmpl)
+	F.Intrinsic.Control.DoUntil(V.ODBC.Con!rstA.EOF,=,True)
+	V.Local.sEarnings.Set("")
+	V.Local.sDeductions.Set("")
+	V.Local.sHours.Set("")
+	V.Local.sRate.Set("")
+	V.Local.sEarn.Set("")
+	V.Local.sYTDears.Set("")
+	V.Local.sDeduct.Set("")
+	V.Local.sYTDded.Set("")
+	V.Local.sAcct.Set("")
+
+	V.Local.sName.Set(V.ODBC.Con!rstA.FieldValTrim!NAME)
+		F.Intrinsic.String.Replace(V.Local.sName,V.Ambient.DblQuote,V.Ambient.QuadQuote,V.Local.sName)
+
+	F.Intrinsic.String.Format(V.ODBC.Con!rstA.FieldVal!PERIOD_END,"YYYYMMDD",V.Local.sPeriodEnd)
+	F.Intrinsic.String.Format(V.ODBC.Con!rstA.FieldVal!CHECK_DATE,"YYYYMMDD",V.Local.sChkDate)
+
+		F.Intrinsic.String.Concat(V.ODBC.Con!rstA.FieldValTrim!EMPLOYEE,",",V.Ambient.DblQuote,V.Local.sName,V.Ambient.DblQuote,",",V.ODBC.Con!rstA.FieldVal!SSN,",",V.Local.sPeriodEnd,",",V.ODBC.Con!rstA.FieldVal!CHECK_NUM,",",V.Local.sChkDate,V.Local.sEmplRecord)
+
+
+V.Local.sPayEarn.Set("select V_PAY_EARN_1.PRS_DESC_1 as PRSC_1,V_PAY_EARN_1.PRS_DESC_2 as PRSC_2,V_PAY_EARN_1.PRS_DESC_3 as PRSC_3,V_PAY_EARN_1.PRS_DESC_4 as PRSC_4,V_PAY_EARN_1.PRS_DESC_5 as PRSC_5")
+F.Intrinsic.String.Concat(V.Local.sPayEarn,",V_PAY_EARN_2.PRS_DESC_1 as PRSC_6,V_PAY_EARN_2.PRS_DESC_2 as PRSC_7,V_PAY_EARN_2.PRS_DESC_3 as PRSC_8,V_PAY_EARN_2.PRS_DESC_4 as PRSC_9,V_PAY_EARN_2.PRS_DESC_5 as PRSC_10  from  V_PAY_EARN_1 ",V.Local.sPayEarn)
+F.Intrinsic.String.Concat(V.Local.sPayEarn,"inner join V_PAY_EARN_2 on V_PAY_EARN_1.WSA_TYPE=V_PAY_EARN_2.WSA_TYPE",V.Local.sSelPE)
+F.ODBC.Connection!Con.OpenRecordsetRO("rstX",V.Local.sSelPE)
+	F.Intrinsic.Control.If(V.ODBC.Con!rstX.EOF,=,False)
+
+	F.Intrinsic.Control.For(V.Local.lCount,1,10,1)
+		V.Local.sRate.Set("0.00")
+		V.Local.sEarn.Set("0.00")
+		V.Local.sYTDears.Set("0.00")
+		V.Local.sHours.Set("0.00")
+		V.Local.sDesc.Set("")
+		V.Local.sHours.Set("0")
+		V.Local.sRate.Set("0.00")
+
+		F.Intrinsic.String.Concat("select HOURS, RATE,EARNINGS,YTD_EARNINGS from V_BI_PAYROLL_CHKS where DESCR='",V.ODBC.Con!rstX.FieldValTrim!PRSC_[v.Local.lCount],"' and EMPLOYEE='",V.ODBC.Con!rstA.FieldValTrim!EMPLOYEE,"'and TRMNL='",V.Caller.Terminal,"' and DESCR<>'' order by SEQUENCE",V.Local.sSelEarn)
+		F.ODBC.Connection!Con.OpenRecordsetRO("rstB",V.Local.sSelEarn)
+			F.Intrinsic.Control.If(V.ODBC.Con!rstB.EOF,=,False)
+				V.Local.sRate.Set(V.ODBC.Con!rstB.FieldValTrim!RATE)
+					F.Intrinsic.String.Format(V.Local.sRate,"0.00",V.Local.sRate)
+				V.Local.sEarn.Set(V.ODBC.Con!rstB.FieldValTrim!EARNINGS)
+					F.Intrinsic.String.Format(V.Local.sEarn,"0.00",V.Local.sEarn)
+				V.Local.sYTDears.Set(V.ODBC.Con!rstB.FieldValTrim!YTD_EARNINGS)
+					F.Intrinsic.String.Format(V.Local.sYTDears,"0.00",V.Local.sYTDears)
+				V.Local.sHours.Set(V.ODBC.Con!rstB.FieldValtrim!HOURS)
+					F.Intrinsic.String.Format(V.Local.sHours,"0.00",V.Local.sHours)
+			F.Intrinsic.Control.EndIf
+
+				F.Intrinsic.String.Concat(V.Local.sEarnings,",",V.Local.sHours,",",V.Local.sRate,",",V.Local.sEarn,",",V.Local.sYTDears,V.Local.sEarnings)
+
+		F.ODBC.Con!rstB.Close
+
+	F.Intrinsic.Control.Next(V.Local.lCount)
+
+	F.Intrinsic.Control.EndIf
+F.ODBC.Con!rstX.Close
+
+
+V.Local.sDedArray.Set("FEDERAL,FICA,MEDI")
+
+V.Local.sSelD.Set("select DEDUCTIONS1,DEDUCTIONS2, DEDUCTIONS3, DEDUCTIONS4, DEDUCTIONS5 from PAY_DED_TITLES_1 where WSA_TYPE='DEDS' order by REC_NUMBER")
+F.ODBC.Connection!Con.OpenRecordsetRO("rstX",V.Local.sSelD)
+	F.Intrinsic.Control.DoUntil(V.ODBC.Con!rstX.EOF,=,True)
+		F.Intrinsic.Control.For(V.Local.lCount,1,5,1)
+			F.Intrinsic.String.Concat(V.Local.sDedArray,",",V.ODBC.Con!rstX.FieldValTrim!DEDUCTIONS[v.Local.lCount],V.Local.sDedArray)
+		F.Intrinsic.Control.Next(V.Local.lCount)
+	F.ODBC.Con!rstX.MoveNext
+	F.Intrinsic.Control.Loop
+F.ODBC.Con!rstX.Close
+
+V.Local.sSelD.Set("select DEDUCTIONS1,DEDUCTIONS2, DEDUCTIONS3, DEDUCTIONS4, DEDUCTIONS5 from PAY_DED_TITLES_1 where WSA_TYPE='PTAX' order by REC_NUMBER")
+F.ODBC.Connection!Con.OpenRecordsetRO("rstX",V.Local.sSelD)
+	F.Intrinsic.Control.If(V.ODBC.Con!rstX.EOF,=,False)
+		F.Intrinsic.Control.For(V.Local.lCount,1,5,1)
+			F.Intrinsic.String.Concat(V.Local.sDedArray,",",V.ODBC.Con!rstX.FieldValTrim!DEDUCTIONS[v.Local.lCount],V.Local.sDedArray)
+		F.Intrinsic.Control.Next(V.Local.lCount)
+	F.Intrinsic.Control.EndIf
+F.ODBC.Con!rstX.Close
+
+V.Local.sSelD.Set("select DEDUCTIONS1,DEDUCTIONS2, DEDUCTIONS3, DEDUCTIONS4, DEDUCTIONS5 from PAY_DED_TITLES_1 where WSA_TYPE='GARN' order by REC_NUMBER")
+F.ODBC.Connection!Con.OpenRecordsetRO("rstX",V.Local.sSelD)
+	F.Intrinsic.Control.If(V.ODBC.Con!rstX.EOF,=,False)
+		F.Intrinsic.Control.For(V.Local.lCount,1,5,1)
+			F.Intrinsic.String.Concat(V.Local.sDedArray,",",V.ODBC.Con!rstX.FieldValTrim!DEDUCTIONS[v.Local.lCount],V.Local.sDedArray)
+		F.Intrinsic.Control.Next(V.Local.lCount)
+	F.Intrinsic.Control.EndIf
+F.ODBC.Con!rstX.Close
+
+
+
+F.Intrinsic.String.Split(V.Local.sDedArray,",",V.Local.sDedArray)
+	F.Intrinsic.Control.For(V.Local.lCount,V.Local.sDedArray.LBound,V.Local.sDedArray.UBound,1)
+		V.Local.sDeduct.Set("0.00")
+		V.Local.sYTDded.Set("0.00")
+		V.Local.sDesc.Set("")
+
+			F.Intrinsic.String.Concat("select distinct  DEDUCT,YTD_DEDUCT from V_BI_PAYROLL_CHKS where D_DESCR='",V.local.sDedArray(v.local.lcount),"' and EMPLOYEE='",V.odbc.con!rsta.fieldvaltrim!employee,"' and TRMNL='",V.Caller.Terminal,"' and D_DESCR<>'' order by SEQUENCE ",V.local.sselded)
+			F.ODBC.Connection!Con.OpenRecordsetRO("rstB",V.Local.sSelDed)
+				F.Intrinsic.Control.If(V.ODBC.Con!rstB.EOF,=,False)
+					V.Local.sDeduct.Set(V.ODBC.Con!rstB.FieldVal!DEDUCT)
+						F.Intrinsic.String.Format(V.Local.sDeduct,"0.00",V.Local.sDeduct)
+					V.Local.sYTDded.Set(V.ODBC.Con!rstB.FieldVal!YTD_DEDUCT)
+						F.Intrinsic.String.Format(V.Local.sYTDded,"0.00",V.Local.sYTDded)
+				F.Intrinsic.Control.EndIf
+
+					V.Local.sDesc(0).Set(V.local.sDedArray(v.local.lcount))
+					F.Intrinsic.String.Concat(V.Local.sDeductions,",",V.Local.sDeduct,",",V.Local.sYTDded,V.Local.sDeductions)
+			F.ODBC.Con!rstB.Close
+
+	F.Intrinsic.Control.Next(V.Local.lCount)
+
+
+F.Intrinsic.String.Concat("select distinct DESCR from V_BI_PAYROLL_CHKS where EMPLOYEE='",V.ODBC.Con!rstA.FieldValTrim!EMPLOYEE,"'and TRMNL='",V.Caller.Terminal,"' and left(DESCR,3)='***' ",V.Local.sSelD)
+F.ODBC.Connection!Con.OpenRecordsetRO("rstX",V.Local.sSelD)
+	F.Intrinsic.Control.If(V.ODBC.Con!rstX.EOF,=,False)
+		F.Intrinsic.String.Split(V.ODBC.Con!rstX.FieldValTrim!DESCR," ",V.Local.sAcct)
+	F.Intrinsic.Control.EndIf
+F.ODBC.Con!rstX.Close
+
+
+		F.Intrinsic.String.Concat(V.Local.sline,V.Local.sEmplRecord,V.Local.sEarnings,V.Local.sDeductions,",",V.ODBC.Con!rstA.FieldValTrim!NET_PAY,",",V.Local.sAcct(0),",",V.ODBC.Con!rstA.FieldVal!DL3_VACATION,V.Local.sline)
+
+			F.Intrinsic.String.Concat("select DEDUCT,YTD_DEDUCT from V_BI_PAYROLL_CHKS where EMPLOYEE='",V.ODBC.Con!rstA.FieldValTrim!EMPLOYEE,"'and TRMNL='",V.Caller.Terminal,"' and D_DESCR='401K'",V.Local.sSelD)
+			F.ODBC.Connection!Con.OpenRecordsetRO("rstX",V.Local.sSelD)
+				F.Intrinsic.Control.If(V.ODBC.Con!rstX.EOF,=,False)
+					V.Local.sDeduct.Set(V.ODBC.Con!rstX.FieldVal!DEDUCT)
+						F.Intrinsic.String.Format(V.Local.sDeduct,"0.00",V.Local.sDeduct)
+					V.Local.sYTDded.Set(V.ODBC.Con!rstX.FieldVal!YTD_DEDUCT)
+						F.Intrinsic.String.Format(V.Local.sYTDded,"0.00",V.Local.sYTDded)
+				F.Intrinsic.Control.EndIf
+			F.ODBC.Con!rstX.Close
+
+
+	F.Intrinsic.String.Concat(V.Local.sline,",",V.Local.sDeduct,",",V.Local.sYTDded,",",V.ODBC.Con!rstA.FieldVal!DL3_MATCH_CURR,",",V.ODBC.Con!rstA.FieldVal!DL3_MATCH_YTD,V.Ambient.NewLine,V.Local.sline)
+
+
+
+	F.ODBC.Con!rstA.MoveNext
+	F.Intrinsic.Control.Loop
+F.ODBC.Con!rstA.Close
+
+F.Intrinsic.String.Replace(V.Local.sline,"$","",V.Local.sline)
+F.Intrinsic.String.Concat(V.Args.Heading,V.Ambient.NewLine,V.Local.sline,V.Local.sline)
+F.Intrinsic.File.String2File(V.Local.sFileName,V.Local.sline)
+
+Gui.Form1..Visible(false)
+F.ODBC.Connection!Con.Close
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.End
+
+
+Program.Sub.Main.End
+
+Program.Sub.Heading.Start
+
+V.Local.sHeading.Declare(String)
+V.Local.spayEarn.Declare(String)
+V.Local.sSelPE.Declare(String)
+V.Local.sSelD.Declare(String)
+V.Local.sYTD.Declare(String)
+V.Local.sField.Declare(String)
+
+V.Local.lCount.Declare(Long)
+
+
+
+
+V.Local.sHeading.Set("Employee,Name,SSN#,Period End Date,Check#,Ckeck Date")
+
+V.Local.sPayEarn.Set("select V_PAY_EARN_1.PRS_DESC_1 as PRSC_1,V_PAY_EARN_1.PRS_DESC_2 as PRSC_2,V_PAY_EARN_1.PRS_DESC_3 as PRSC_3,V_PAY_EARN_1.PRS_DESC_4 as PRSC_4,V_PAY_EARN_1.PRS_DESC_5 as PRSC_5")
+F.Intrinsic.String.Concat(V.Local.sPayEarn,",V_PAY_EARN_2.PRS_DESC_1 as PRSC_6,V_PAY_EARN_2.PRS_DESC_2 as PRSC_7,V_PAY_EARN_2.PRS_DESC_3 as PRSC_8,V_PAY_EARN_2.PRS_DESC_4 as PRSC_9,V_PAY_EARN_2.PRS_DESC_5 as PRSC_10  from  V_PAY_EARN_1 ",V.Local.sPayEarn)
+F.Intrinsic.String.Concat(V.Local.sPayEarn,"inner join V_PAY_EARN_2 on V_PAY_EARN_1.WSA_TYPE=V_PAY_EARN_2.WSA_TYPE",V.Local.sSelPE)
+F.ODBC.Connection!Con.OpenRecordsetRO("rstX",V.Local.sSelPE)
+	F.Intrinsic.Control.If(V.ODBC.Con!rstX.EOF,=,False)
+		F.Intrinsic.Control.For(V.Local.lCount,1,10,1)
+			F.Intrinsic.Control.If(V.ODBC.Con!rstX.FieldValTrim!PRSC_[v.Local.lCount],<>,"")
+				V.Local.sField.Set(V.ODBC.Con!rstX.FieldValTrim!PRSC_[v.Local.lCount])
+			F.Intrinsic.Control.Else
+				V.Local.sField.Set("UNUSED")
+			F.Intrinsic.Control.EndIf
+			F.Intrinsic.String.Concat(V.Local.sHeading,",",V.Local.sField,",Rate,PTD,YTD",V.Local.sHeading)
+		F.Intrinsic.Control.Next(V.Local.lCount)
+	F.Intrinsic.Control.EndIf
+F.ODBC.Con!rstX.Close
+
+
+F.Intrinsic.String.Concat(V.Local.sHeading,",Federal PTD,Federal YTD,FICA PTD,FICA YTD,MEDI PTD,MEDI YTD",V.Local.sHeading)
+
+
+V.Local.sSelD.Set("select DEDUCTIONS1,DEDUCTIONS2, DEDUCTIONS3, DEDUCTIONS4, DEDUCTIONS5 from PAY_DED_TITLES_1 where WSA_TYPE='DEDS' order by REC_NUMBER")
+F.ODBC.Connection!Con.OpenRecordsetRO("rstX",V.Local.sSelD)
+	F.Intrinsic.Control.DoUntil(V.ODBC.Con!rstX.EOF,=,True)
+		F.Intrinsic.Control.For(V.Local.lCount,1,5,1)
+			V.Local.sYTD.Set("")
+				F.Intrinsic.Control.If(V.ODBC.Con!rstX.FieldValTrim!DEDUCTIONS[v.Local.lCount],<>,"")
+					V.Local.sField.Set(V.ODBC.Con!rstX.FieldValTrim!DEDUCTIONS[v.Local.lCount])
+				F.Intrinsic.Control.Else
+					V.Local.sField.Set("UNUSED")
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.String.Concat(V.Local.sField,"YTD",V.Local.sYTD)
+			F.Intrinsic.String.Concat(V.Local.sHeading,",",V.Local.sField,",",V.Local.sYTD,V.Local.sHeading)
+		F.Intrinsic.Control.Next(V.Local.lCount)
+	F.ODBC.Con!rstX.MoveNext
+	F.Intrinsic.Control.Loop
+F.ODBC.Con!rstX.Close
+
+V.Local.sSelD.Set("select DEDUCTIONS1,DEDUCTIONS2, DEDUCTIONS3, DEDUCTIONS4, DEDUCTIONS5 from PAY_DED_TITLES_1 where WSA_TYPE='PTAX' order by REC_NUMBER")
+F.ODBC.Connection!Con.OpenRecordsetRO("rstX",V.Local.sSelD)
+	F.Intrinsic.Control.If(V.ODBC.Con!rstX.EOF,=,False)
+		F.Intrinsic.Control.For(V.Local.lCount,1,5,1)
+			V.Local.sYTD.Set("")
+				F.Intrinsic.Control.If(V.ODBC.Con!rstX.FieldValTrim!DEDUCTIONS[v.Local.lCount],<>,"")
+					V.Local.sField.Set(V.ODBC.Con!rstX.FieldValTrim!DEDUCTIONS[v.Local.lCount])
+				F.Intrinsic.Control.Else
+					V.Local.sField.Set("UNUSED")
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.String.Concat(V.Local.sField,"YTD",V.Local.sYTD)
+			F.Intrinsic.String.Concat(V.Local.sHeading,",",V.Local.sField,",",V.Local.sYTD,V.Local.sHeading)
+		F.Intrinsic.Control.Next(V.Local.lCount)
+	F.Intrinsic.Control.EndIf
+F.ODBC.Con!rstX.Close
+
+V.Local.sSelD.Set("select DEDUCTIONS1,DEDUCTIONS2, DEDUCTIONS3, DEDUCTIONS4, DEDUCTIONS5 from PAY_DED_TITLES_1 where WSA_TYPE='GARN' order by REC_NUMBER")
+F.ODBC.Connection!Con.OpenRecordsetRO("rstX",V.Local.sSelD)
+	F.Intrinsic.Control.If(V.ODBC.Con!rstX.EOF,=,False)
+		F.Intrinsic.Control.For(V.Local.lCount,1,5,1)
+			V.Local.sYTD.Set("")
+				F.Intrinsic.Control.If(V.ODBC.Con!rstX.FieldValTrim!DEDUCTIONS[v.Local.lCount],<>,"")
+					V.Local.sField.Set(V.ODBC.Con!rstX.FieldValTrim!DEDUCTIONS[v.Local.lCount])
+				F.Intrinsic.Control.Else
+					V.Local.sField.Set("UNUSED")
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.String.Concat(V.Local.sField,"YTD",V.Local.sYTD)
+			F.Intrinsic.String.Concat(V.Local.sHeading,",",V.Local.sField,",",V.Local.sYTD,V.Local.sHeading)
+		F.Intrinsic.Control.Next(V.Local.lCount)
+	F.Intrinsic.Control.EndIf
+F.ODBC.Con!rstX.Close
+
+
+F.Intrinsic.String.Concat(V.Local.sHeading,",NET PAY,ACCT,VACATION,401K,401K YTD,401K Match,401K Match YTD",V.Local.sHeading)
+
+
+F.Intrinsic.Variable.AddRV("Heading",V.Local.sHeading)
+
+Program.Sub.Heading.End
+
+
